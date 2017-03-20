@@ -5,16 +5,25 @@ import br.com.tguide.api.rdf.vocabulary.REV;
 import br.com.tguide.api.rdf.vocabulary.SchemaOrg;
 import br.com.tguide.api.rdf.vocabulary.TGUIDE;
 import lombok.Data;
+import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.hibernate.validator.constraints.NotBlank;
 
 import javax.validation.constraints.NotNull;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.UUID;
+
+import static org.springframework.util.StringUtils.hasText;
 
 @Data
 public class PlaceRating {
+
+    public static final String URI = "http://tguide.com.br/";
+
+    private static DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss");
 
     private double latitude, longitude;
 
@@ -28,4 +37,19 @@ public class PlaceRating {
     @NotNull
     private Date collectedAt;
 
+    public Resource addAsResourceTo(Model model) {
+        String comment = hasText(this.comment) ? this.comment : "";
+
+        return model.createResource(getResourceUri(), SchemaOrg.Place)
+                .addProperty(SchemaOrg.name, placeName)
+                .addProperty(GEO.latitude, String.valueOf(latitude))
+                .addProperty(GEO.longitude, String.valueOf(longitude))
+                .addProperty(REV.rating, String.valueOf(value))
+                .addProperty(REV.comment, comment)
+                .addProperty(TGUIDE.collectedAt, dateFormat.format(this.collectedAt), XSDDatatype.XSDdateTime);
+    }
+
+    private String getResourceUri() {
+        return URI + UUID.randomUUID();
+    }
 }
