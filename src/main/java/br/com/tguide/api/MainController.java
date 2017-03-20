@@ -10,27 +10,46 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @RestController("/ratings")
-public class TGuideController {
+public class MainController {
 
     private static final String FUSEKI_URI = "http://eudesdionatas.tk:8080/TGuide";
     private static final String GRAPH_URI = "/ratings";
+    private final DatasetAccessor datasetAccessor;
+
+    public MainController() {
+        datasetAccessor = DatasetAccessorFactory.createHTTP(FUSEKI_URI);
+    }
 
     @PostMapping
     public ResponseEntity save(@RequestBody @Validated PlaceRating placeRating) {
         Model model = createModel();
         placeRating.addAsResourceTo(model);
 
-        DatasetAccessor datasetAccessor = DatasetAccessorFactory.createHTTP(FUSEKI_URI);
         datasetAccessor.add(GRAPH_URI, model);
 
         //model.write(System.out);
 
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<List<PlaceRating>> findAll() {
+        Model model = datasetAccessor.getModel(GRAPH_URI);
+        List<PlaceRating> items = new ArrayList<>();
+
+        if (model != null && !model.isEmpty())
+            model.listSubjects().forEachRemaining(res -> items.add(PlaceRating.fromResource(res)));
+
+        return ResponseEntity.ok(items);
     }
 
     private Model createModel() {
